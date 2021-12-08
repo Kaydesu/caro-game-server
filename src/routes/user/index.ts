@@ -26,6 +26,9 @@ router.post('/', (
   res: ApiResponse<RegisterSuccess>
 ) => {
   const { name } = req.body;
+
+  console.log(req.body);
+
   if (UserManager.checkUserExist(name)) {
     return res.status(400).json({
       status: 'error',

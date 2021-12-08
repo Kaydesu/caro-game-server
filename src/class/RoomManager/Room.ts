@@ -178,8 +178,8 @@ export class Room {
         case this.chatTopic:
           console.log("Common chat topic: ", data);
           this.chat.push({
-            owner: data.userName,
-            text: data.text,
+            owner: data.payload.userName,
+            text: data.payload.text,
             timeStamp: new Date().getTime(),
           })
           break;

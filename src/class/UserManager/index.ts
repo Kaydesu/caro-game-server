@@ -11,6 +11,7 @@ class UserManager {
 
   addUser(name: string): User | undefined {
     const id = uuid();
+    console.log(name, id);
     this.users.set(id, new User(id, name));
     return this.users.get(id);
   }
