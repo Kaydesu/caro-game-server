@@ -13,11 +13,12 @@ class RoomManager {
   }
 
   createRoom(name: string, userId: string) {
-    return new Promise((resolve, reject) => {
+    return new Promise<number>((resolve, reject) => {
       if (UserManager.getById(userId)) {
         const id = uuid();
-        this._rooms.set(id, new Room(name, userId, id))
-        resolve("success");
+        const room = new Room(name, userId, id);
+        this._rooms.set(id, room)
+        resolve(room.accessCode);
       } else {
         reject();
       }
@@ -50,12 +51,12 @@ class RoomManager {
   left(userId: string, roomId: string) {
     return new Promise((resolve, reject) => {
       const room = this.getRoom(roomId);
-      if(room?.checkUserExist(userId)){
-        reject(ERROR_CODES.USER_ALREADY_IN_ROOM);
+      if (!room?.checkUserExist(userId)) {
+        reject(ERROR_CODES.USER_NOT_IN_ROOM);
       } else {
         const user = UserManager.getById(userId);
         user && room?.left(user);
-        resolve('success');
+        resolve("success");
       }
     });
   }

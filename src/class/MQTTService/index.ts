@@ -1,8 +1,8 @@
 import mqtt, { Client as MQTTClient } from 'mqtt';
+import { LOBBY_TOPIC } from '../../utils/constants';
+import { MQTTMessage } from '../../utils/type';
 
 const HOST = 'ws://broker.emqx.io:8083/mqtt'
-
-const LOBBY_TOPIC = 'lobby/caro-dual'
 
 class MQTTService {
   private _client: MQTTClient;
@@ -16,10 +16,7 @@ class MQTTService {
 
       this._connectionStatus = 'connect';
       Promise.all(this.sub([LOBBY_TOPIC])).then(res => {
-        this._client.on('message', (topic, payload) => {
-          const data = JSON.parse(payload.toString());
-          this.handleTopic(topic, data);
-        })
+
       }).catch(err => {
         console.log(err);
       });
@@ -44,10 +41,14 @@ class MQTTService {
     });
   }
 
-  pub(topic: string): Promise<unknown> {
+  pub(topic: string, data: MQTTMessage): Promise<unknown> {
     return new Promise((resolve, reject) => {
       if (this._client) {
-        this._client.subscribe(topic, { qos: 0 }, (error) => {
+        const stringify = JSON.stringify({
+          type: data.type,
+          payload: data.payload
+        });
+        this._client.publish(topic, stringify, { qos: 0 }, (error) => {
           if (error) {
             reject(error);
           } else {
@@ -77,10 +78,16 @@ class MQTTService {
     return promises;
   }
 
-  handleTopic(topic: string, data: any) {
-    console.log("Receive message from topic: ", topic);
-    console.log(data);
+  handleTopic(topic: string | string[], callback: Function) {
+    this._client.on('message', (msgTopic, payload) => {
+      const match = typeof topic === 'string' ? topic === msgTopic : topic.includes(msgTopic)
+      if (match) {
+        const data = JSON.parse(payload.toString());
+        callback(data, msgTopic);
+      }
+    })
   }
+
 }
 
 export default new MQTTService();

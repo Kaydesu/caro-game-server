@@ -1,4 +1,4 @@
-import { MemberRole, ResponseSuccess, RoomInfo, Topics, UserInfo } from "../../utils/type";
+import { Conversation, MemberRole, ResponseSuccess, RoomInfo, Topics, UserInfo } from "../../utils/type";
 
 // POST api/room
 export interface CreateRoomBody {
@@ -6,7 +6,7 @@ export interface CreateRoomBody {
   userId: string;
 }
 
-export type CreateRoomSuccess = ResponseSuccess<null>;
+export type CreateRoomSuccess = ResponseSuccess<{ accessCode: number }>;
 
 // GET api/room
 export type GetRoomsResponse = ResponseSuccess<{
@@ -22,10 +22,11 @@ export interface JoinRoomBody {
 
 export type JoinRoomSuccess = ResponseSuccess<{
   users: UserInfo[];
+  conversations: Conversation[],
   topics: Topics | null,
 }>;
 
-//POST api/room/left:roomId
+//POST api/room/left/:roomId
 export interface LeftRoomBody {
   userId: string;
 }
@@ -33,3 +34,9 @@ export interface LeftRoomBody {
 export type LeftRoomSuccess = ResponseSuccess<{
   topics: Topics | null;
 }>;
+
+
+//POST api/room/chat/:roomId
+export type GetChatSuccess = ResponseSuccess<{
+  conversations: Conversation[],
+}>

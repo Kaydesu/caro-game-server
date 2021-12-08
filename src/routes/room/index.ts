@@ -2,10 +2,11 @@ import { Router } from "express";
 import join from './join';
 import left from './left';
 import { CreateRoomBody, CreateRoomSuccess, GetRoomsResponse } from "./type";
-import { ApiRequest, ApiResponse } from "../../utils/type";
+import { ApiRequest, ApiResponse, MQTTMessageTypes } from "../../utils/type";
 import RoomManager from "../../class/RoomManager";
 import { apiError } from "../../utils/functions";
-import { ERROR_CODES } from "../../utils/constants";
+import { ERROR_CODES, LOBBY_TOPIC } from "../../utils/constants";
+import MQTTService from "../../class/MQTTService";
 
 const router = Router();
 
@@ -36,9 +37,17 @@ router.post('/', (
     });
   } else {
     // Make sure User is existed:
-    RoomManager.createRoom(name, userId).then(() => {
-      const response: CreateRoomSuccess = { status: 'success', data: null };
+    RoomManager.createRoom(name, userId).then((accessCode: number) => {
+      const response: CreateRoomSuccess = { status: 'success', data: { accessCode } };
       res.json(response);
+
+      MQTTService.pub(LOBBY_TOPIC, {
+        type: MQTTMessageTypes.NOTIFICATION,
+        payload: {
+          message: `Some body has created room ${name}`,
+        }
+      });
+
     }).catch(error => {
       return res.status(400).json({
         status: 'error',

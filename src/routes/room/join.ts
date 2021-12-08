@@ -2,7 +2,7 @@ import { Router } from "express";
 import RoomManager from "../../class/RoomManager";
 import { ERROR_CODES } from "../../utils/constants";
 import { apiError } from "../../utils/functions";
-import { ApiRequest, ApiResponse, MemberRole } from "../../utils/type";
+import { ApiRequest, ApiResponse, MemberRole, MQTTMessageTypes } from "../../utils/type";
 import { JoinRoomBody, JoinRoomSuccess } from "./type";
 
 const router = Router();
@@ -32,6 +32,9 @@ router.post('/:roomId', (
     });
   }
 
+  // users: room ? room.getUsersInfo() : [],
+  // topics: room?.topics || null,
+
   // Join room
   RoomManager.join(userId, role, roomId, accessCode).then(() => {
     const room = RoomManager.getRoom(roomId);
@@ -39,6 +42,7 @@ router.post('/:roomId', (
       status: 'success',
       data: {
         users: room ? room.getUsersInfo() : [],
+        conversations: room ? room.conversation : [],
         topics: room?.topics || null,
       }
     })

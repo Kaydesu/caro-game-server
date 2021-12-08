@@ -1,5 +1,6 @@
 import { v4 as uuid } from 'uuid';
-import { AuthType, MemberRole, UserInfo } from '../../utils/type';
+import { AuthType, MemberRole, MQTTMessageTypes, UserInfo } from '../../utils/type';
+import MQTTService from '../MQTTService';
 import UserManager from '../UserManager';
 import { User } from '../UserManager/User';
 // const mqttService = require('../MQTTService');
@@ -17,7 +18,12 @@ export class Room {
     role: MemberRole;
     score?: number;
     steps?: number;
-  }>
+  }>;
+  private chat: {
+    owner: string;
+    text: string;
+    timeStamp: number;
+  }[]
 
   constructor(name: string, userId: string, roomId: string) {
     this._name = name;
@@ -27,17 +33,19 @@ export class Room {
     this.chatTopic = `chat/${uuid().slice(0, 8)}`;
     this.roomTopic = `roomTopic/${this._name}`;
     this.users = new Map();
+    this.chat = [];
     this._owner = UserManager.getById(userId) || null;
 
-    // Promise.all([
-    //   mqttService.sub(this.roomTopic),
-    //   mqttService.sub(this.chatTopic),
-    //   mqttService.sub(this.playTopic),
-    // ]).then(() => {
-    //   this.handleMessage();
-    // }).catch(error => {
-    //   console.log('Something went wrong');
-    // })
+    Promise.all(MQTTService.sub([
+      this.playTopic,
+      this.chatTopic,
+      this.roomTopic
+    ])).then(() => {
+      console.log('Room create success, subsribe to topics');
+      this.handleMessage();
+    }).catch(error => {
+      console.log('Something went wrong');
+    });
   }
 
   get id() {
@@ -64,6 +72,10 @@ export class Room {
     return this._accessCode;
   }
 
+  get conversation() {
+    return this.chat;
+  }
+
   manualAccessCode(accessCode: number) {
     this._accessCode = accessCode;
   }
@@ -88,7 +100,7 @@ export class Room {
         role: role,
       });
       if (this.users.size === 0) this._owner = user;
-      console.log(this.owner);
+      this.welcome(user.name);
       return true;
     } else {
       if (this._accessCode === accessCode) {
@@ -98,7 +110,7 @@ export class Room {
           role: role,
         });
         if (this.users.size === 0) this._owner = user;
-        console.log(this.owner);
+        this.welcome(user.name);
         return true;
       } else {
         return false;
@@ -108,8 +120,10 @@ export class Room {
 
   left(user: User) {
     if (user) {
+      console.log(user);
       user.leftRoom();
       this.users.delete(user);
+      this.goodbye(user.name);
       if (user?.id === this.owner?.id) {
         this._owner = null;
         const nextOwner = this.users.entries().next().value[0];
@@ -129,62 +143,47 @@ export class Room {
     return data;
   }
 
-  welcome(id: string) {
-    // const user = UserManager.getById(id);
-    // if (user) {
-    //   this.notify(`Welcome ${user.name} to ${this._name}`);
-    //   if (this.users.size === 0) {
-    //     this.users.set(user, {
-    //       authenticate: 'HOST',
-    //       role
-    //       score: 0,
-    //       steps: 0,
-    //     });
-    //   } else {
-    //     this.users.set(user, {
-    //       authenticate: 'GUEST',
-    //       score: 0,
-    //       steps: 0,
-    //     })
-    //   }
-    // }
+  welcome(userName: string) {
+    this.notify(`Welcome ${userName} to ${this._name}`);
   }
 
-  goodbye(id: string) {
-    const user = UserManager.getById(id);
-    if (user) {
-      this.notify(`${user.name} has left the room`);
-      this.users.delete(user);
-    }
+  goodbye(userName: string) {
+    this.notify(`${userName} has left the room`);
   }
 
-  notify(msg: string) {
-    // mqttService.pub(this.roomTopic, {
-    //   type: 'notification',
-    //   message: msg,
-    // }).then(() => {
-    //   console.log('Room notification success');
-    // });
+  notify(message: string) {
+    MQTTService.pub(this.roomTopic, {
+      type: MQTTMessageTypes.NOTIFICATION,
+      payload: {
+        message: message
+      },
+    }).then(() => {
+      console.log('Room notification success');
+    });
   }
 
   handleMessage() {
-    // mqttService.client.on('message', (topic, message) => {
-    //   message = JSON.parse(message.toString())
-
-    //   console.log('=============Receiving message:');
-    //   console.log(topic, message);
-
-    //   switch (message.type) {
-    //     case 'START':
-    //       this.notify(`${message.name} has started the game`);
-    //       break;
-    //     case 'PAUSE':
-    //       this.notify(`${message.name} has paused the game`);
-    //       break;
-    //     case 'QUIT':
-    //       this.notify(`${message.name} has left the room`);
-    //       break;
-    //   }
-    // })
+    MQTTService.handleTopic([
+      this.roomTopic,
+      this.playTopic,
+      this.chatTopic,
+    ], (data: any, topic: string) => {
+      switch (topic) {
+        case this.roomTopic:
+          console.log("Common room topic: ", data);
+          break;
+        case this.playTopic:
+         
+          break;
+        case this.chatTopic:
+          console.log("Common chat topic: ", data);
+          this.chat.push({
+            owner: data.userName,
+            text: data.text,
+            timeStamp: new Date().getTime(),
+          })
+          break;
+      }
+    });
   }
 }

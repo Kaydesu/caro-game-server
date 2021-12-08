@@ -9,8 +9,6 @@ export type RegisterSuccess = ResponseSuccess<{
   userId: string;
 }>
 
-export type RegisterFailed = ResponseFailed;
-
 // GET api/user
 export type GetUsersResponse = ResponseSuccess<{
   users: UserInfo[];

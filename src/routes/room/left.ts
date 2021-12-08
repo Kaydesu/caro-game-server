@@ -24,11 +24,21 @@ router.post('/:roomId', (
   }
 
   // Check room exist
-  const room = RoomManager.getRoom(roomId)
+  const room = RoomManager.getRoom(roomId);
   if (room) {
-    if (!room.checkUserExist(userId)) {
-      RoomManager.left(userId, roomId);
-    }
+    RoomManager.left(userId, roomId).then(() => {
+      res.json({
+        status: 'success',
+        data: {
+          topics: null,
+        },
+      });
+    }).catch(errCode => {
+      return res.status(400).json({
+        status: "error",
+        error: apiError(errCode),
+      })
+    });
   } else {
     return res.status(400).json({
       status: "error",

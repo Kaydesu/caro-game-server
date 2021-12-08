@@ -18,3 +18,8 @@ export const ERRORS = {
   'USER_NOT_IN_ROOM': { errorCode: 2004, errorMessage: 'This user is not in in this room' }
 }
 
+export const LOBBY_TOPIC = 'lobby/caro-dual';
+
+export const MQTTEvents = {
+  'NEW_COMER': {code: 1001}
+}

@@ -1,9 +1,10 @@
 import { Router } from "express";
+import MQTTService from "../../class/MQTTService";
 import UserManager from "../../class/UserManager";
-import { ERROR_CODES } from "../../utils/constants";
+import { ERROR_CODES, LOBBY_TOPIC } from "../../utils/constants";
 import { apiError } from "../../utils/functions";
-import { ApiRequest, ApiResponse } from "../../utils/type";
-import { GetUsersResponse, RegisterFailed, RegisterSuccess, RegisterUserBody } from "./type";
+import { ApiRequest, ApiResponse, MQTTMessageTypes } from "../../utils/type";
+import { GetUsersResponse, RegisterSuccess, RegisterUserBody } from "./type";
 
 const router = Router();
 
@@ -32,13 +33,18 @@ router.post('/', (
     });
   } else {
     const user = UserManager.addUser(name);
-    const response: RegisterSuccess = {
+    MQTTService.pub(LOBBY_TOPIC, {
+      type: MQTTMessageTypes.NOTIFICATION,
+      payload: {
+        message: `Welcome ${name} to lobby`
+      }
+    });
+    res.json({
       status: 'success',
       data: {
         userId: user?.id || '',
       }
-    }
-    res.json(response)
+    })
   }
 })
 
